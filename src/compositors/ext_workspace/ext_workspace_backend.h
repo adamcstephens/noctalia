@@ -3,10 +3,23 @@
 #include "compositors/workspace_backend.h"
 
 #include <unordered_map>
+#include <vector>
 
 struct wl_array;
 struct ext_workspace_group_handle_v1;
 struct ext_workspace_handle_v1;
+
+namespace ext_workspace {
+
+  // Establishes the display order and fills in the 1-based Workspace::index.
+  //
+  // Coordinates are the only order the protocol defines, and the event is
+  // optional: compositors that don't send it (Pinnacle) leave every workspace
+  // comparing equal. Fall back to the numeric name, then the numeric id, which
+  // tracks creation order where ids are monotonic.
+  void orderForDisplay(std::vector<Workspace>& workspaces);
+
+} // namespace ext_workspace
 
 class ExtWorkspaceBackend final : public WorkspaceBackend, public ExtWorkspaceProtocolBinder {
 public:

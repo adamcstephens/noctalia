@@ -1176,6 +1176,7 @@ if build_tests
     'dock_pinned_apps',
     'enterprise_credentials',
     'event_link',
+    'ext_workspace_order',
     'fcitx_status',
     'freedesktop_key_file',
     'google_client_calendar_list',

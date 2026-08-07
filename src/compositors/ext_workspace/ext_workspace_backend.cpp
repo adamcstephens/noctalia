@@ -4,6 +4,9 @@
 #include "ext-workspace-v1-client-protocol.h"
 
 #include <algorithm>
+#include <charconv>
+#include <cstddef>
+#include <optional>
 
 namespace {
 
@@ -102,7 +105,48 @@ namespace {
     return normalized;
   }
 
+  [[nodiscard]] std::optional<std::uint64_t> parseUnsigned(const std::string& text) {
+    std::uint64_t value = 0;
+    const auto* end = text.data() + text.size();
+    const auto result = std::from_chars(text.data(), end, value);
+    if (result.ec != std::errc{} || result.ptr != end) {
+      return std::nullopt;
+    }
+    return value;
+  }
+
+  [[nodiscard]] bool orderBefore(const Workspace& lhs, const Workspace& rhs) {
+    if (lhs.coordinates != rhs.coordinates) {
+      return lhs.coordinates < rhs.coordinates;
+    }
+
+    const auto lhsName = parseUnsigned(lhs.name);
+    const auto rhsName = parseUnsigned(rhs.name);
+    if (lhsName.has_value() && rhsName.has_value() && *lhsName != *rhsName) {
+      return *lhsName < *rhsName;
+    }
+
+    const auto lhsId = parseUnsigned(lhs.id);
+    const auto rhsId = parseUnsigned(rhs.id);
+    if (lhsId.has_value() && rhsId.has_value() && *lhsId != *rhsId) {
+      return *lhsId < *rhsId;
+    }
+
+    return lhs.id < rhs.id;
+  }
+
 } // namespace
+
+namespace ext_workspace {
+
+  void orderForDisplay(std::vector<Workspace>& workspaces) {
+    std::ranges::sort(workspaces, orderBefore);
+    for (std::size_t i = 0; i < workspaces.size(); ++i) {
+      workspaces[i].index = static_cast<std::uint32_t>(i + 1);
+    }
+  }
+
+} // namespace ext_workspace
 
 void ExtWorkspaceBackend::bindExtWorkspace(ext_workspace_manager_v1* manager) {
   m_manager = manager;
@@ -265,7 +309,7 @@ std::vector<Workspace> ExtWorkspaceBackend::all() const {
     result.push_back(ws);
   }
 
-  std::ranges::sort(result, {}, &Workspace::coordinates);
+  ext_workspace::orderForDisplay(result);
   return result;
 }
 
@@ -286,7 +330,7 @@ std::vector<Workspace> ExtWorkspaceBackend::forOutput(wl_output* output) const {
     }
   }
 
-  std::ranges::sort(result, {}, &Workspace::coordinates);
+  ext_workspace::orderForDisplay(result);
   return result;
 }
 
