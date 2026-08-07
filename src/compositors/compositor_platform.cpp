@@ -364,6 +364,7 @@ namespace {
     case compositors::CompositorKind::Dwl:
     case compositors::CompositorKind::Labwc:
     case compositors::CompositorKind::Kde:
+    case compositors::CompositorKind::Pinnacle:
     case compositors::CompositorKind::Unknown:
       return std::make_unique<LambdaOutputPowerBackend>(&setGenericOutputPower);
     }
@@ -386,6 +387,7 @@ namespace {
     case compositors::CompositorKind::Kde:
     case compositors::CompositorKind::Mango:
     case compositors::CompositorKind::Umbriel:
+    case compositors::CompositorKind::Pinnacle:
     case compositors::CompositorKind::Unknown:
       break;
     }
@@ -407,6 +409,7 @@ namespace {
     case compositors::CompositorKind::Dwl:
     case compositors::CompositorKind::Kde:
     case compositors::CompositorKind::Labwc:
+    case compositors::CompositorKind::Pinnacle:
     case compositors::CompositorKind::Unknown:
       break;
     }
@@ -431,6 +434,7 @@ namespace {
     case compositors::CompositorKind::Dwl:
     case compositors::CompositorKind::Labwc:
     case compositors::CompositorKind::Kde:
+    case compositors::CompositorKind::Pinnacle:
     case compositors::CompositorKind::Unknown:
       break;
     }
@@ -1574,6 +1578,7 @@ bool CompositorPlatform::requestSessionExit() const {
     }
     break;
   case compositors::CompositorKind::Kde:
+  case compositors::CompositorKind::Pinnacle:
   case compositors::CompositorKind::Unknown:
     break;
   }

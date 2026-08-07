@@ -190,6 +190,7 @@ void WaylandWorkspaces::initialize() {
     }
     break;
   case compositors::CompositorKind::Labwc:
+  case compositors::CompositorKind::Pinnacle:
     if (availableOrConnected(m_extBackend)) {
       setActiveBackend(m_extBackend);
       return;

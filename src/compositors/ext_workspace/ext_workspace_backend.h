@@ -23,6 +23,8 @@ namespace ext_workspace {
 
 class ExtWorkspaceBackend final : public WorkspaceBackend, public ExtWorkspaceProtocolBinder {
 public:
+  ExtWorkspaceBackend();
+
   void bindExtWorkspace(ext_workspace_manager_v1* manager) override;
 
   [[nodiscard]] const char* backendName() const override { return "ext-workspace"; }
@@ -57,8 +59,15 @@ private:
     std::vector<ext_workspace_handle_v1*> workspaces;
   };
 
+  [[nodiscard]] const WorkspaceGroup* groupForWorkspace(ext_workspace_handle_v1* workspace) const;
+  void commitActivation(const WorkspaceGroup* group, ext_workspace_handle_v1* workspace);
+
   ext_workspace_manager_v1* m_manager = nullptr;
   std::vector<WorkspaceGroup> m_groups;
   std::unordered_map<ext_workspace_handle_v1*, Workspace> m_workspaces;
   ChangeCallback m_changeCallback;
+  // activate() alone is unspecified: the protocol says it may or may not
+  // deactivate the rest of the group. Pinnacle's tags are additive, so
+  // deactivate the others explicitly.
+  bool m_exclusiveActivation = false;
 };

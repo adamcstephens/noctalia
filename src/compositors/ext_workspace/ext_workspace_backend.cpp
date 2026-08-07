@@ -1,5 +1,6 @@
 #include "compositors/ext_workspace/ext_workspace_backend.h"
 
+#include "compositors/compositor_detect.h"
 #include "core/log.h"
 #include "ext-workspace-v1-client-protocol.h"
 
@@ -148,12 +149,42 @@ namespace ext_workspace {
 
 } // namespace ext_workspace
 
+ExtWorkspaceBackend::ExtWorkspaceBackend() : m_exclusiveActivation(compositors::isPinnacle()) {}
+
 void ExtWorkspaceBackend::bindExtWorkspace(ext_workspace_manager_v1* manager) {
   m_manager = manager;
   ext_workspace_manager_v1_add_listener(m_manager, &kManagerListener, this);
 }
 
 void ExtWorkspaceBackend::setChangeCallback(ChangeCallback callback) { m_changeCallback = std::move(callback); }
+
+const ExtWorkspaceBackend::WorkspaceGroup*
+ExtWorkspaceBackend::groupForWorkspace(ext_workspace_handle_v1* workspace) const {
+  for (const auto& group : m_groups) {
+    if (std::ranges::contains(group.workspaces, workspace)) {
+      return &group;
+    }
+  }
+  return nullptr;
+}
+
+void ExtWorkspaceBackend::commitActivation(const WorkspaceGroup* group, ext_workspace_handle_v1* workspace) {
+  if (m_exclusiveActivation && group != nullptr) {
+    // Requests before a commit are applied atomically, so the switch never shows both.
+    for (auto* handle : group->workspaces) {
+      if (handle == workspace) {
+        continue;
+      }
+      const auto it = m_workspaces.find(handle);
+      if (it != m_workspaces.end() && it->second.active) {
+        ext_workspace_handle_v1_deactivate(handle);
+      }
+    }
+  }
+
+  ext_workspace_handle_v1_activate(workspace);
+  ext_workspace_manager_v1_commit(m_manager);
+}
 
 void ExtWorkspaceBackend::activate(const std::string& id) {
   if (m_manager == nullptr) {
@@ -164,8 +195,7 @@ void ExtWorkspaceBackend::activate(const std::string& id) {
     if (ws.id != id) {
       continue;
     }
-    ext_workspace_handle_v1_activate(handle);
-    ext_workspace_manager_v1_commit(m_manager);
+    commitActivation(groupForWorkspace(handle), handle);
     kLog.debug("activating \"{}\"", ws.name);
     return;
   }
@@ -188,8 +218,7 @@ void ExtWorkspaceBackend::activateForOutput(wl_output* output, const std::string
         continue;
       }
 
-      ext_workspace_handle_v1_activate(handle);
-      ext_workspace_manager_v1_commit(m_manager);
+      commitActivation(&group, handle);
       kLog.debug("activating \"{}\"", it->second.name);
       return;
     }
@@ -229,8 +258,7 @@ void ExtWorkspaceBackend::activateForOutput(wl_output* output, const Workspace& 
       if (it == m_workspaces.end() || !matchesExact(it->second)) {
         continue;
       }
-      ext_workspace_handle_v1_activate(handle);
-      ext_workspace_manager_v1_commit(m_manager);
+      commitActivation(&group, handle);
       kLog.debug("activating \"{}\"", it->second.name);
       return;
     }
@@ -240,8 +268,7 @@ void ExtWorkspaceBackend::activateForOutput(wl_output* output, const Workspace& 
       if (it == m_workspaces.end() || !matchesId(it->second)) {
         continue;
       }
-      ext_workspace_handle_v1_activate(handle);
-      ext_workspace_manager_v1_commit(m_manager);
+      commitActivation(&group, handle);
       kLog.debug("activating \"{}\"", it->second.name);
       return;
     }
@@ -251,8 +278,7 @@ void ExtWorkspaceBackend::activateForOutput(wl_output* output, const Workspace& 
       if (it == m_workspaces.end() || !matchesCoordinatesPrimary(it->second)) {
         continue;
       }
-      ext_workspace_handle_v1_activate(handle);
-      ext_workspace_manager_v1_commit(m_manager);
+      commitActivation(&group, handle);
       kLog.debug("activating \"{}\" (coordinate fallback)", it->second.name);
       return;
     }
