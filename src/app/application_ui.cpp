@@ -815,6 +815,7 @@ void Application::initNotificationAndOsd() {
       }
   );
   m_idleManager.setLiveIdleChangeCallback([this] {
+    syncLogindIdleHint();
     DeferredCall::callLater([this] { m_settingsWindow.onIdleLiveStatusChanged(); });
   });
   m_idleManager.reload(m_configService.config().idle);
@@ -839,6 +840,7 @@ void Application::initNotificationAndOsd() {
       [this] {
         if (m_configService.lastChange().idle) {
           m_idleManager.reload(m_configService.config().idle);
+          syncLogindIdleHint();
         }
       },
       "idle"

@@ -402,6 +402,21 @@ namespace {
     TEST_CHECK(fixture.actions == std::vector<Action>({{"screen-off", IdleActionKind::ScreenOff, ""}}));
   }
 
+  void checkSessionIdleRespectsInhibitReleaseDebounce() {
+    Fixture fixture({});
+    const auto heartbeat = fixture.server.notification(1000);
+    fixture.send(heartbeat);
+    TEST_CHECK(fixture.idle.sessionIdle());
+    fixture.idle.setScreenSaverInhibitLocks(1);
+    TEST_CHECK(!fixture.idle.sessionIdle());
+    fixture.idle.setScreenSaverInhibitLocks(0);
+    TEST_CHECK(!fixture.idle.sessionIdle());
+    outlastInhibitReleaseDebounce(fixture);
+    TEST_CHECK(fixture.idle.sessionIdle());
+    fixture.send(heartbeat, false);
+    TEST_CHECK(!fixture.idle.sessionIdle());
+  }
+
 } // namespace
 
 int main() {
@@ -411,4 +426,5 @@ int main() {
   checkLockDuringFade();
   checkLockDuringCancelledFade();
   checkScreenSaverInhibitCancelsFadeAndRestartsAfterRelease();
+  checkSessionIdleRespectsInhibitReleaseDebounce();
 }
