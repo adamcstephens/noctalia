@@ -2220,6 +2220,10 @@
           "description": "Named idle actions with presets (lock, screen off, suspend) or custom commands, timeouts, resume pairing, and order",
           "label": "Behaviors"
         },
+        "logind-idle-hint": {
+          "description": "Report session idle state to logind so external tools can read IdleHint",
+          "label": "Logind Idle Hint"
+        },
         "pre-action-fade": {
           "description": "Seconds of fullscreen dim before the idle command (0 disables)",
           "label": "Idle Dim"

@@ -313,8 +313,12 @@ address          = ""                # e.g. "Toronto, ON"; geocoded when auto_lo
 # Optional `[idle]` keys:
 #   pre_action_fade_seconds: fade a fullscreen surface-color overlay in over this many seconds, then run `command`.
 #                             Use 0 for immediate commands with no overlay. Input during the fade cancels.
+#   publish_logind_idle_hint — mirror the compositor idle state onto the logind session so
+#                             `loginctl show-session -p IdleHint` reflects it (default true).
+#                             Held off while Caffeine or a D-Bus screensaver inhibit is active.
 # [idle]
 # pre_action_fade_seconds = 2.0
+# publish_logind_idle_hint = true
 
 [idle.behavior.lock]
 timeout = 600

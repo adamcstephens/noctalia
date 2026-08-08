@@ -215,6 +215,7 @@ private:
   void recoverGraphicsAfterReset();
   void requestAllSurfacesRedraw();
   void releaseSleepDelayInhibitIfPending();
+  void syncLogindIdleHint();
   void onUpowerStateChangedForHooks();
   void onNetworkStateChangedForEvents(const NetworkState& state, NetworkChangeOrigin origin);
   void onBluetoothStateChangedForEvents(const BluetoothState& state, BluetoothStateChangeOrigin origin);

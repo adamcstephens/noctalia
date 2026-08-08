@@ -2,6 +2,8 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
+#include <string>
 
 class SystemBus;
 
@@ -26,6 +28,10 @@ public:
   void setLockBeforeSuspendEnabled(bool enabled);
   void setSessionLockedHint(bool locked);
 
+  // Publishes session idle state to logind so `loginctl show-session -p IdleHint` (and anything
+  // else reading IdleHint/IdleSinceHint) reflects what the compositor reports.
+  void setIdleHint(bool idle);
+
   [[nodiscard]] bool supportsIdleInhibit() const noexcept;
   [[nodiscard]] bool hasIdleInhibit() const noexcept;
   bool acquireIdleInhibit();
@@ -38,11 +44,14 @@ public:
   void releaseSleepDelayInhibit();
 
 private:
-  void ensureSessionLockMonitor();
+  void ensureSessionProxy();
 
   SystemBus& m_bus;
   std::unique_ptr<sdbus::IProxy> m_managerProxy;
   std::unique_ptr<sdbus::IProxy> m_sessionProxy;
+  std::string m_sessionPath;
+  std::optional<bool> m_idleHint;
+  bool m_idleHintUnsupported = false;
   bool m_sessionLockIntegrationEnabled = false;
   PrepareForSleepCallback m_prepareForSleepCallback;
   SessionLockCallback m_lockCallback;

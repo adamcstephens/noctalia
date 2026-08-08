@@ -18,6 +18,8 @@ namespace {
 
   const sdbus::ServiceName kLogindBusName{"org.freedesktop.login1"};
   const sdbus::ObjectPath kLogindObjectPath{"/org/freedesktop/login1"};
+  // Alias for "the caller's session, or this user's display session if it has none".
+  const sdbus::ObjectPath kLogindAutoSessionPath{"/org/freedesktop/login1/session/auto"};
   constexpr auto kLogindManagerInterface = "org.freedesktop.login1.Manager";
   constexpr auto kLogindSessionInterface = "org.freedesktop.login1.Session";
 
@@ -52,11 +54,30 @@ namespace {
         }
       }
 
+      try {
+        sdbus::ObjectPath sessionPath;
+        managerProxy->callMethod("GetSessionByPID")
+            .onInterface(kLogindManagerInterface)
+            .withArguments(static_cast<std::uint32_t>(::getpid()))
+            .storeResultsTo(sessionPath);
+        return sessionPath;
+      } catch (const sdbus::Error& e) {
+        // Running under systemd --user puts us in user@.service instead of a session
+        // scope, so we own no session to look up.
+        kLog.debug("failed to resolve logind session via pid: {}", e.what());
+      }
+
+      // Resolve the alias to its canonical path: logind emits session signals (Lock/Unlock)
+      // on the real object path, so a proxy bound to the alias would never see them.
+      auto autoProxy = sdbus::createProxy(connection, kLogindBusName, kLogindAutoSessionPath);
+      const auto displaySessionId =
+          autoProxy->getProperty("Id").onInterface(kLogindSessionInterface).get<std::string>();
       sdbus::ObjectPath sessionPath;
-      managerProxy->callMethod("GetSessionByPID")
+      managerProxy->callMethod("GetSession")
           .onInterface(kLogindManagerInterface)
-          .withArguments(static_cast<std::uint32_t>(::getpid()))
+          .withArguments(displaySessionId)
           .storeResultsTo(sessionPath);
+      kLog.info("resolved logind display session {}", displaySessionId);
       return sessionPath;
     } catch (const sdbus::Error& e) {
       kLog.warn("failed to resolve logind session: {}", e.what());
@@ -75,33 +96,37 @@ LogindService::LogindService(SystemBus& bus) : m_bus(bus) {
 }
 
 LogindService::~LogindService() {
+  if (m_idleHint.value_or(false)) {
+    setIdleHint(false);
+  }
   releaseSleepDelayInhibit();
   releaseIdleInhibit();
 }
 
-void LogindService::ensureSessionLockMonitor() {
+void LogindService::ensureSessionProxy() {
   if (m_sessionProxy != nullptr) {
     return;
   }
 
   const auto sessionPath = resolveSessionPath(m_bus.connection());
   if (!sessionPath.has_value()) {
-    kLog.warn("logind session lock monitor disabled: session path unavailable");
+    kLog.warn("logind session features disabled: session path unavailable");
     return;
   }
 
   m_sessionProxy = sdbus::createProxy(m_bus.connection(), kLogindBusName, *sessionPath);
+  m_sessionPath = sessionPath->c_str();
   m_sessionProxy->uponSignal("Lock").onInterface(kLogindSessionInterface).call([this]() {
-    if (m_lockCallback) {
+    if (m_sessionLockIntegrationEnabled && m_lockCallback) {
       m_lockCallback();
     }
   });
   m_sessionProxy->uponSignal("Unlock").onInterface(kLogindSessionInterface).call([this]() {
-    if (m_unlockCallback) {
+    if (m_sessionLockIntegrationEnabled && m_unlockCallback) {
       m_unlockCallback();
     }
   });
-  kLog.info("logind session lock monitor active ({})", std::string(sessionPath->c_str()));
+  kLog.info("logind session resolved ({})", m_sessionPath);
 }
 
 void LogindService::setSessionLockIntegrationEnabled(bool enabled) {
@@ -111,11 +136,13 @@ void LogindService::setSessionLockIntegrationEnabled(bool enabled) {
   m_sessionLockIntegrationEnabled = enabled;
   if (!enabled) {
     releaseSleepDelayInhibit();
-    m_sessionProxy.reset();
     kLog.info("logind session lock monitor disabled");
     return;
   }
-  ensureSessionLockMonitor();
+  ensureSessionProxy();
+  if (m_sessionProxy != nullptr) {
+    kLog.info("logind session lock monitor active ({})", m_sessionPath);
+  }
 }
 
 void LogindService::setLockBeforeSuspendEnabled(bool enabled) {
@@ -124,6 +151,30 @@ void LogindService::setLockBeforeSuspendEnabled(bool enabled) {
     return;
   }
   (void)acquireSleepDelayInhibit();
+}
+
+void LogindService::setIdleHint(bool idle) {
+  if (m_idleHintUnsupported || m_idleHint == idle) {
+    return;
+  }
+  ensureSessionProxy();
+  if (m_sessionProxy == nullptr) {
+    return;
+  }
+  try {
+    m_sessionProxy->callMethod("SetIdleHint").onInterface(kLogindSessionInterface).withArguments(idle);
+    m_idleHint = idle;
+    kLog.debug("logind idle hint set to {}", idle);
+  } catch (const sdbus::Error& e) {
+    // logind only accepts the hint on graphical sessions, so a shell started straight from a
+    // tty (Type=tty) is refused every time. Latch instead of warning on every idle transition.
+    if (e.getName() == "org.freedesktop.DBus.Error.NotSupported") {
+      m_idleHintUnsupported = true;
+      kLog.info("logind idle hint unsupported for this session (needs Type=x11/wayland): {}", e.getMessage());
+      return;
+    }
+    kLog.warn("failed to set logind idle hint: {}", e.what());
+  }
 }
 
 void LogindService::setPrepareForSleepCallback(PrepareForSleepCallback callback) {

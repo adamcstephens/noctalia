@@ -46,6 +46,10 @@ public:
   void setSessionLocked(bool locked);
   /// Seconds the compositor has reported session-idle (1s heartbeat notification); 0 when active.
   [[nodiscard]] std::int64_t liveIdleSeconds() const noexcept { return m_liveIdleSeconds; }
+  /// The compositor reports the seat idle and nothing is inhibiting it.
+  [[nodiscard]] bool sessionIdle() const noexcept {
+    return m_heartbeatCompositorIdle && m_screenSaverInhibitLocks == 0;
+  }
   void onSecondTick();
   static void handleIdled(void* data, ext_idle_notification_v1* notification);
   static void handleResumed(void* data, ext_idle_notification_v1* notification);
@@ -68,6 +72,8 @@ private:
 
   [[nodiscard]] double effectiveTimeoutSeconds(const IdleBehaviorConfig& config) const;
   void clearBehaviors();
+  // Arms the notification behind sessionIdle(). Must stay registered for the process lifetime:
+  // the logind idle hint depends on it, not just the settings live status readout.
   void syncHeartbeat();
   void destroyHeartbeat();
   void notifyLiveIdleChanged();

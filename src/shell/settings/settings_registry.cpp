@@ -2773,6 +2773,12 @@ namespace settings {
         "idle fade dim seconds overlay"
     ));
     entries.push_back(makeEntry(
+        SettingsSection::Power, "idle", tr("settings.schema.idle.logind-idle-hint.label"),
+        tr("settings.schema.idle.logind-idle-hint.description"), {"idle", "publish_logind_idle_hint"},
+        ToggleSetting{.checked = cfg.idle.publishLogindIdleHint},
+        "idle logind session hint loginctl external away presence"
+    ));
+    entries.push_back(makeEntry(
         SettingsSection::Power, "idle", tr("settings.schema.idle.behaviors.label"),
         tr("settings.schema.idle.behaviors.description"), {"idle", "behavior"},
         IdleBehaviorsSetting{.items = cfg.idle.behaviors},

@@ -838,6 +838,7 @@ void Application::initWaylandCallbacks() {
     if (shouldRefreshControlCenter()) {
       m_panelManager.refresh();
     }
+    syncLogindIdleHint();
   });
 }
 
@@ -986,6 +987,15 @@ void Application::releaseSleepDelayInhibitIfPending() {
   }
 }
 
+void Application::syncLogindIdleHint() {
+  if (m_logindService == nullptr) {
+    return;
+  }
+  const bool idle =
+      m_configService.config().idle.publishLogindIdleHint && m_idleManager.sessionIdle() && !m_idleInhibitor.enabled();
+  m_logindService->setIdleHint(idle);
+}
+
 void Application::initSystemBusServices() {
   auto shouldRefreshControlCenter = [this]() { return m_panelManager.isOpenPanel("control-center"); };
 
@@ -1091,6 +1101,7 @@ void Application::initSystemBusServices() {
         });
         kLog.info("logind sleep monitor active");
         m_idleInhibitor.setLogindService(m_logindService.get());
+        syncLogindIdleHint();
       } catch (const std::exception& e) {
         kLog.warn("logind sleep monitor disabled: {}", e.what());
         m_logindService.reset();

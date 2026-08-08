@@ -303,6 +303,10 @@ struct IdleConfig {
   /// from transparent to opaque over this many seconds, then runs `command`. Compositor activity during
   /// the fade cancels. When 0, the idle command runs immediately with no overlay.
   float preActionFadeSeconds = 2.0F;
+  /// Mirrors the compositor's idle state onto the logind session (`SetIdleHint`) so external
+  /// tooling can read `IdleHint` / `IdleSinceHint`. Suppressed while Caffeine or a D-Bus
+  /// screensaver inhibit is active.
+  bool publishLogindIdleHint = true;
 
   bool operator==(const IdleConfig&) const = default;
 };

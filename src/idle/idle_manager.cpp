@@ -145,7 +145,7 @@ void IdleManager::syncHeartbeat() {
 
   m_heartbeatNotification = m_wayland->createIdleNotification(kHeartbeatTimeoutMs);
   if (m_heartbeatNotification == nullptr) {
-    kLog.warn("failed to register idle heartbeat for live status");
+    kLog.warn("failed to register idle heartbeat for session idle status");
     return;
   }
 
