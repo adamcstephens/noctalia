@@ -77,9 +77,15 @@ void IdleManager::setScreenSaverInhibitLocks(std::int64_t locks) {
       notifyLiveIdleChanged();
     }
   }
-  if (wasInhibited && !inhibited && m_idledWhileScreenSaverInhibited) {
-    m_idledWhileScreenSaverInhibited = false;
-    recreateBehaviorNotifications();
+  if (wasInhibited && !inhibited) {
+    // The heartbeat's idled event is dropped while inhibited, and ext-idle-notify only repeats
+    // it after a resume. Without a fresh notification live idle status stays stuck at active
+    // for as long as the user stays away.
+    syncHeartbeat();
+    if (m_idledWhileScreenSaverInhibited) {
+      m_idledWhileScreenSaverInhibited = false;
+      recreateBehaviorNotifications();
+    }
   }
 }
 
