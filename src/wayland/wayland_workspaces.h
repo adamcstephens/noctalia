@@ -9,9 +9,13 @@
 #include <utility>
 
 struct wl_output;
+struct wl_seat;
 struct ext_workspace_manager_v1;
 struct org_kde_plasma_virtual_desktop_management;
 struct zdwl_ipc_manager_v2;
+struct zriver_status_manager_v1;
+struct zriver_control_v1;
+class RiverClassicWorkspaceBackend;
 
 namespace compositors {
   class CompositorRuntimeRegistry;
@@ -27,6 +31,9 @@ public:
   void bindExtWorkspace(ext_workspace_manager_v1* manager);
   void bindKdeVirtualDesktop(org_kde_plasma_virtual_desktop_management* management);
   void bindDwlIpcWorkspace(zdwl_ipc_manager_v2* manager);
+  void bindRiverClassicStatus(zriver_status_manager_v1* manager);
+  void bindRiverClassicControl(zriver_control_v1* control);
+  void setSeat(wl_seat* seat);
   void setOutputNameResolver(std::function<std::string(wl_output*)> resolver);
   void initialize();
   void onOutputAdded(wl_output* output);
@@ -56,6 +63,7 @@ public:
   mangoIpcFocusedClientOnOutput(wl_output* output) const;
   [[nodiscard]] wl_output* dwlIpcSelectedOutput() const;
   [[nodiscard]] std::optional<std::pair<std::string, std::string>> dwlIpcFocusedClientOnOutput(wl_output* output) const;
+  [[nodiscard]] wl_output* riverClassicFocusedOutput() const;
   [[nodiscard]] std::optional<std::string> focusedWindowId() const;
 
 private:
@@ -72,6 +80,7 @@ private:
   WorkspaceBackend* m_mangoIpcBackend = nullptr;
   WorkspaceSocketConnector* m_mangoIpcConnector = nullptr;
   WorkspaceBackend* m_dwlIpcBackend = nullptr;
+  RiverClassicWorkspaceBackend* m_riverClassicBackend = nullptr;
   WorkspaceBackend* m_hyprlandBackend = nullptr;
   WorkspaceBackend* m_swayBackend = nullptr;
   WorkspaceBackend* m_kwinBackend = nullptr;

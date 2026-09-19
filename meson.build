@@ -359,6 +359,10 @@ foreach _p : [
     'protocols/virtual-keyboard-unstable-v1.xml'],
   ['dwl-ipc-unstable-v2',
     'protocols/dwl-ipc-unstable-v2.xml'],
+  ['river-classic-status-unstable-v1',
+    'protocols/river-classic-status-unstable-v1.xml'],
+  ['river-classic-control-unstable-v1',
+    'protocols/river-classic-control-unstable-v1.xml'],
   ['org-kde-plasma-virtual-desktop',
     'protocols/org-kde-plasma-virtual-desktop.xml'],
   ['cursor-shape-v1',
@@ -923,6 +927,7 @@ _noctalia_sources = files(
   'src/compositors/compositor_detect.cpp',
   'src/compositors/compositor_runtime.cpp',
   'src/compositors/dwl/dwl_workspace_backend.cpp',
+  'src/compositors/river-classic/river-classic-workspace-backend.cpp',
   'src/compositors/ext_workspace/ext_workspace_output_backend.cpp',
   'src/compositors/ext_workspace/ext_workspace_backend.cpp',
   'src/compositors/hyprland/hyprland_runtime.cpp',
@@ -1269,6 +1274,40 @@ if build_tests
       test_args = [meson.project_source_root() / 'assets' / 'translations']
     endif
     test(test_name, test_exe, args: test_args)
+  endforeach
+
+  river_classic_test = executable('river-classic-workspace-backend-test',
+    sources: files('tests/river-classic-workspace-backend-test.cpp'),
+    dependencies: noctalia_core_dep,
+    override_options: ['b_ndebug=false'],
+  )
+  test('river-classic-workspace-backend', river_classic_test)
+
+  river_classic_detection_test = executable('river-classic-detection-test',
+    sources: files('tests/river-classic-detection-test.cpp'),
+    dependencies: noctalia_core_dep,
+    override_options: ['b_ndebug=false'],
+  )
+  foreach detection_case : [
+    ['classic', 'river-classic', '', 'RiverClassic'],
+    ['modern', 'river', '', 'Unknown'],
+    ['triad', 'river-classic', 'triad', 'Triad'],
+  ]
+    detection_env = environment()
+    foreach variable : [
+      'UMBRIEL_SOCKET', 'LABWC_PID', 'TRIAD_SOCKET', 'NIRI_SOCKET',
+      'HYPRLAND_INSTANCE_SIGNATURE', 'SWAYSOCK', 'MANGO_INSTANCE_SIGNATURE',
+      'PINNACLE_GRPC_SOCKET', 'XDG_SESSION_DESKTOP', 'DESKTOP_SESSION',
+    ]
+      detection_env.set(variable, '')
+    endforeach
+    detection_env.set('XDG_CURRENT_DESKTOP', detection_case[1])
+    detection_env.set('RIVER_WM', detection_case[2])
+    test('river-classic-detection-' + detection_case[0],
+      river_classic_detection_test,
+      args: [detection_case[3]],
+      env: detection_env,
+    )
   endforeach
 
   upower_integration_exe = executable('upower_charge_limit_integration_test',

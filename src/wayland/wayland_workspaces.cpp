@@ -8,6 +8,7 @@
 #include "compositors/kde/kwin_workspace_backend.h"
 #include "compositors/mango/mango_workspace_backend.h"
 #include "compositors/output_backend.h"
+#include "compositors/river-classic/river-classic-workspace-backend.h"
 #include "compositors/sway/sway_workspace_backend.h"
 #include "compositors/triad/triad_workspace_backend.h"
 #include "core/log.h"
@@ -39,6 +40,12 @@ WaylandWorkspaces::WaylandWorkspaces(compositors::CompositorRuntimeRegistry& run
   m_dwlIpcBackend = dwlIpcBackend.get();
   m_outputObservers.push_back(dwlIpcBackend.get());
   m_backends.push_back(std::move(dwlIpcBackend));
+
+  auto riverClassicBackend = std::make_unique<RiverClassicWorkspaceBackend>();
+  m_riverClassicBackend = riverClassicBackend.get();
+  m_outputObservers.push_back(riverClassicBackend.get());
+  m_outputNameResolvers.push_back(riverClassicBackend.get());
+  m_backends.push_back(std::move(riverClassicBackend));
 
   auto hyprlandBackend = std::make_unique<HyprlandWorkspaceBackend>(
       [](wl_output* /*output*/) { return std::string{}; }, runtimeRegistry.hyprland()
@@ -102,6 +109,16 @@ void WaylandWorkspaces::bindDwlIpcWorkspace(zdwl_ipc_manager_v2* manager) {
   }
 }
 
+void WaylandWorkspaces::bindRiverClassicStatus(zriver_status_manager_v1* manager) {
+  m_riverClassicBackend->bindRiverClassicStatus(manager);
+}
+
+void WaylandWorkspaces::bindRiverClassicControl(zriver_control_v1* control) {
+  m_riverClassicBackend->bindRiverClassicControl(control);
+}
+
+void WaylandWorkspaces::setSeat(wl_seat* seat) { m_riverClassicBackend->setSeat(seat); }
+
 void WaylandWorkspaces::setOutputNameResolver(std::function<std::string(wl_output*)> resolver) {
   for (auto* backend : m_outputNameResolvers) {
     if (backend != nullptr) {
@@ -120,6 +137,10 @@ void WaylandWorkspaces::initialize() {
         && (m_triadConnector->connectSocket() || m_triadBackend->isAvailable());
   };
   auto tryFallback = [&](bool includeMangoIpc, bool includeDwlIpc) {
+    if (availableOrConnected(m_riverClassicBackend)) {
+      setActiveBackend(m_riverClassicBackend);
+      return true;
+    }
     if (availableOrConnected(m_extBackend)) {
       setActiveBackend(m_extBackend);
       return true;
@@ -199,6 +220,12 @@ void WaylandWorkspaces::initialize() {
   case compositors::CompositorKind::Umbriel:
     if (availableOrConnected(m_extBackend)) {
       setActiveBackend(m_extBackend);
+      return;
+    }
+    break;
+  case compositors::CompositorKind::RiverClassic:
+    if (availableOrConnected(m_riverClassicBackend)) {
+      setActiveBackend(m_riverClassicBackend);
       return;
     }
     break;
@@ -375,6 +402,13 @@ WaylandWorkspaces::dwlIpcFocusedClientOnOutput(wl_output* output) const {
     return std::nullopt;
   }
   return static_cast<const DwlWorkspaceBackend*>(m_dwlIpcBackend)->ipcFocusedClientForOutput(output);
+}
+
+wl_output* WaylandWorkspaces::riverClassicFocusedOutput() const {
+  if (m_activeBackend != m_riverClassicBackend || !m_riverClassicBackend->isAvailable()) {
+    return nullptr;
+  }
+  return m_riverClassicBackend->focusedOutput();
 }
 
 void WaylandWorkspaces::setActiveBackend(WorkspaceBackend* backend) {

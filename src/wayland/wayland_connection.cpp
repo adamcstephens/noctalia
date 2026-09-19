@@ -18,6 +18,8 @@
 #include "hyprland-toplevel-mapping-v1-client-protocol.h"
 #include "idle-inhibit-unstable-v1-client-protocol.h"
 #include "org-kde-plasma-virtual-desktop-client-protocol.h"
+#include "river-classic-control-unstable-v1-client-protocol.h"
+#include "river-classic-status-unstable-v1-client-protocol.h"
 #include "text-input-unstable-v3-client-protocol.h"
 #include "util/string_utils.h"
 #include "viewporter-client-protocol.h"
@@ -56,6 +58,8 @@ namespace {
   constexpr std::uint32_t kXdgWmBaseVersion = 6;
   constexpr std::uint32_t kExtWorkspaceManagerVersion = 1;
   constexpr std::uint32_t kKdeVirtualDesktopManagementVersion = 4;
+  constexpr std::uint32_t kRiverClassicStatusManagerVersion = 4;
+  constexpr std::uint32_t kRiverClassicControlVersion = 1;
   constexpr std::uint32_t kWlrForeignToplevelManagerVersion = 3;
   constexpr std::uint32_t kExtForeignToplevelListVersion = 1;
   constexpr std::uint32_t kCursorShapeManagerVersion = 1;
@@ -394,6 +398,13 @@ void WaylandConnection::setKdeVirtualDesktopManagerCallback(
   m_kdeVirtualDesktopManagerCallback = std::move(callback);
 }
 
+void WaylandConnection::setRiverClassicWorkspaceCallbacks(
+    std::function<void(zriver_status_manager_v1*)> status, std::function<void(zriver_control_v1*)> control
+) {
+  m_riverClassicStatusCallback = std::move(status);
+  m_riverClassicControlCallback = std::move(control);
+}
+
 void WaylandConnection::setToplevelChangeCallback(ChangeCallback callback) {
   m_toplevelsHandler.setChangeCallback(callback);
   m_extForeignToplevels.setChangeCallback(std::move(callback));
@@ -653,6 +664,8 @@ bool WaylandConnection::hasXdgShell() const noexcept { return m_xdgWmBase != nul
 bool WaylandConnection::hasExtWorkspaceManager() const noexcept { return m_hasExtWorkspaceGlobal; }
 bool WaylandConnection::hasKdeVirtualDesktopManager() const noexcept { return m_hasKdeVirtualDesktopGlobal; }
 bool WaylandConnection::hasDwlIpcManager() const noexcept { return m_hasDwlIpcGlobal; }
+bool WaylandConnection::hasRiverClassicStatusManager() const noexcept { return m_hasRiverClassicStatusGlobal; }
+bool WaylandConnection::hasRiverClassicControl() const noexcept { return m_hasRiverClassicControlGlobal; }
 bool WaylandConnection::hasForeignToplevelManager() const noexcept { return m_hasForeignToplevelManagerGlobal; }
 
 bool WaylandConnection::hasExtForeignToplevelList() const noexcept { return m_hasExtForeignToplevelListGlobal; }
@@ -1084,6 +1097,33 @@ void WaylandConnection::bindGlobal(
     return;
   }
 
+  if (interfaceName == zriver_status_manager_v1_interface.name) {
+    m_hasRiverClassicStatusGlobal = true;
+    const auto bindVersion = std::min(version, kRiverClassicStatusManagerVersion);
+    auto* manager = static_cast<zriver_status_manager_v1*>(
+        wl_registry_bind(registry, name, &zriver_status_manager_v1_interface, bindVersion)
+    );
+    if (m_riverClassicStatusCallback) {
+      m_riverClassicStatusCallback(manager);
+    } else {
+      zriver_status_manager_v1_destroy(manager);
+    }
+    return;
+  }
+
+  if (interfaceName == zriver_control_v1_interface.name) {
+    m_hasRiverClassicControlGlobal = true;
+    const auto bindVersion = std::min(version, kRiverClassicControlVersion);
+    auto* control =
+        static_cast<zriver_control_v1*>(wl_registry_bind(registry, name, &zriver_control_v1_interface, bindVersion));
+    if (m_riverClassicControlCallback) {
+      m_riverClassicControlCallback(control);
+    } else {
+      zriver_control_v1_destroy(control);
+    }
+    return;
+  }
+
   if (interfaceName == zwlr_foreign_toplevel_manager_v1_interface.name) {
     m_hasForeignToplevelManagerGlobal = true;
     const auto bindVersion = std::min(version, kWlrForeignToplevelManagerVersion);
@@ -1510,21 +1550,27 @@ void WaylandConnection::cleanup() {
   m_hasLayerShellGlobal = false;
   m_hasExtWorkspaceGlobal = false;
   m_hasDwlIpcGlobal = false;
+  m_hasRiverClassicStatusGlobal = false;
+  m_hasRiverClassicControlGlobal = false;
   m_hasForeignToplevelManagerGlobal = false;
   m_outputAddedCallback = nullptr;
   m_outputRemovedCallback = nullptr;
   m_extWorkspaceManagerCallback = nullptr;
   m_kdeVirtualDesktopManagerCallback = nullptr;
   m_dwlIpcManagerCallback = nullptr;
+  m_riverClassicStatusCallback = nullptr;
+  m_riverClassicControlCallback = nullptr;
 }
 
 void WaylandConnection::logStartupSummary() const {
   kLog.info(
       "connected compositor={} shm={} layer-shell={} xdg-shell={} xdg-output={} ext-workspace={} kde-vd={} dwl-ipc={} "
-      "session-lock={} fractional-scale={} gamma-control={} output-management={} outputs={}",
+      "river-classic-status={} river-classic-control={} session-lock={} fractional-scale={} gamma-control={} "
+      "output-management={} outputs={}",
       m_compositor != nullptr ? "yes" : "no", m_shm != nullptr ? "yes" : "no", hasLayerShell() ? "yes" : "no",
       hasXdgShell() ? "yes" : "no", hasXdgOutputManager() ? "yes" : "no", hasExtWorkspaceManager() ? "yes" : "no",
       hasKdeVirtualDesktopManager() ? "yes" : "no", hasDwlIpcManager() ? "yes" : "no",
+      hasRiverClassicStatusManager() ? "yes" : "no", hasRiverClassicControl() ? "yes" : "no",
       hasSessionLockManager() ? "yes" : "no", hasFractionalScale() ? "yes" : "no", hasGammaControl() ? "yes" : "no",
       hasOutputManagement() ? "yes" : "no", m_outputs.size()
   );

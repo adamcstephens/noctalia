@@ -17,6 +17,7 @@ namespace compositors {
     Kde = 8,
     Umbriel = 9,
     Pinnacle = 10,
+    RiverClassic = 11,
   };
 
   // Detected once per process from env vars. Cached after the first call.
@@ -38,5 +39,6 @@ namespace compositors {
   [[nodiscard]] inline bool isKde() { return detect() == CompositorKind::Kde; }
   [[nodiscard]] inline bool isUmbriel() { return detect() == CompositorKind::Umbriel; }
   [[nodiscard]] inline bool isPinnacle() { return detect() == CompositorKind::Pinnacle; }
+  [[nodiscard]] inline bool isRiverClassic() { return detect() == CompositorKind::RiverClassic; }
 
 } // namespace compositors

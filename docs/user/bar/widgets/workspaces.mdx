@@ -15,6 +15,11 @@ Workspace pills use the workspaces widget's resolved `capsule_radius`.
 Set `[widget.workspaces].capsule_radius` for just the workspace switcher, or `[bar.<name>].capsule_radius` as the bar default.
 Pill styling and `capsule_radius` apply only when `style = "regular"`.
 
+On **River Classic**, workspaces represent all 32 tags on each output. Multiple tags can be active at once, and occupied
+and urgent states follow the compositor's tag masks. Clicking a tag focuses its output and displays only that tag.
+Set `hide_when_empty = true` to hide unused tags while keeping active and urgent tags visible. River Classic does not
+provide per-window tag assignments, so per-workspace application lists and taskbar workspace grouping are unavailable.
+
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `style` | string | `"regular"` | Pill style: `"regular"` (animated pills), `"minimal"` (labels drawn without pill backgrounds), or `"focus_hint"` (inactive dots + expanded active pill with focused app icon). |

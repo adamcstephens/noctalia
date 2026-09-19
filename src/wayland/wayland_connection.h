@@ -41,6 +41,8 @@ struct zwlr_foreign_toplevel_handle_v1;
 struct ext_workspace_manager_v1;
 struct org_kde_plasma_virtual_desktop_management;
 struct zdwl_ipc_manager_v2;
+struct zriver_status_manager_v1;
+struct zriver_control_v1;
 struct zwp_virtual_keyboard_manager_v1;
 struct zwp_text_input_manager_v3;
 struct hyprland_focus_grab_manager_v1;
@@ -147,6 +149,9 @@ public:
       std::function<void(ext_workspace_manager_v1*)> extWorkspace, std::function<void(zdwl_ipc_manager_v2*)> dwlIpc
   );
   void setKdeVirtualDesktopManagerCallback(std::function<void(org_kde_plasma_virtual_desktop_management*)> callback);
+  void setRiverClassicWorkspaceCallbacks(
+      std::function<void(zriver_status_manager_v1*)> status, std::function<void(zriver_control_v1*)> control
+  );
   void setToplevelChangeCallback(ChangeCallback callback);
   void setHyprlandToplevelMappingManagerCallback(
       std::function<void(hyprland_toplevel_mapping_manager_v1* manager)> callback
@@ -175,6 +180,8 @@ public:
   [[nodiscard]] bool hasExtWorkspaceManager() const noexcept;
   [[nodiscard]] bool hasKdeVirtualDesktopManager() const noexcept;
   [[nodiscard]] bool hasDwlIpcManager() const noexcept;
+  [[nodiscard]] bool hasRiverClassicStatusManager() const noexcept;
+  [[nodiscard]] bool hasRiverClassicControl() const noexcept;
   [[nodiscard]] bool hasForeignToplevelManager() const noexcept;
   [[nodiscard]] bool hasExtForeignToplevelList() const noexcept;
   [[nodiscard]] bool hasSessionLockManager() const noexcept;
@@ -338,6 +345,8 @@ private:
   bool m_hasExtWorkspaceGlobal = false;
   bool m_hasKdeVirtualDesktopGlobal = false;
   bool m_hasDwlIpcGlobal = false;
+  bool m_hasRiverClassicStatusGlobal = false;
+  bool m_hasRiverClassicControlGlobal = false;
   bool m_hasForeignToplevelManagerGlobal = false;
   bool m_hasExtForeignToplevelListGlobal = false;
   std::vector<WaylandOutput> m_outputs;
@@ -348,6 +357,8 @@ private:
   std::function<void(ext_workspace_manager_v1*)> m_extWorkspaceManagerCallback;
   std::function<void(org_kde_plasma_virtual_desktop_management*)> m_kdeVirtualDesktopManagerCallback;
   std::function<void(zdwl_ipc_manager_v2*)> m_dwlIpcManagerCallback;
+  std::function<void(zriver_status_manager_v1*)> m_riverClassicStatusCallback;
+  std::function<void(zriver_control_v1*)> m_riverClassicControlCallback;
   std::function<void(hyprland_toplevel_mapping_manager_v1*)> m_hyprlandToplevelMappingManagerCallback;
   std::unordered_map<wl_surface*, wl_output*> m_surfaceOutputMap;
   std::unordered_map<wl_surface*, std::vector<wl_output*>> m_surfaceOutputs;

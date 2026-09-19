@@ -365,6 +365,7 @@ namespace {
     case compositors::CompositorKind::Labwc:
     case compositors::CompositorKind::Kde:
     case compositors::CompositorKind::Pinnacle:
+    case compositors::CompositorKind::RiverClassic:
     case compositors::CompositorKind::Unknown:
       return std::make_unique<LambdaOutputPowerBackend>(&setGenericOutputPower);
     }
@@ -388,6 +389,7 @@ namespace {
     case compositors::CompositorKind::Mango:
     case compositors::CompositorKind::Umbriel:
     case compositors::CompositorKind::Pinnacle:
+    case compositors::CompositorKind::RiverClassic:
     case compositors::CompositorKind::Unknown:
       break;
     }
@@ -410,6 +412,7 @@ namespace {
     case compositors::CompositorKind::Kde:
     case compositors::CompositorKind::Labwc:
     case compositors::CompositorKind::Pinnacle:
+    case compositors::CompositorKind::RiverClassic:
     case compositors::CompositorKind::Unknown:
       break;
     }
@@ -435,6 +438,7 @@ namespace {
     case compositors::CompositorKind::Labwc:
     case compositors::CompositorKind::Kde:
     case compositors::CompositorKind::Pinnacle:
+    case compositors::CompositorKind::RiverClassic:
     case compositors::CompositorKind::Unknown:
       break;
     }
@@ -609,6 +613,10 @@ CompositorPlatform::CompositorPlatform(WaylandConnection& wayland)
   m_wayland.setKdeVirtualDesktopManagerCallback([this](org_kde_plasma_virtual_desktop_management* management) {
     bindKdeVirtualDesktop(management);
   });
+  m_wayland.setRiverClassicWorkspaceCallbacks(
+      [this](zriver_status_manager_v1* manager) { bindRiverClassicStatus(manager); },
+      [this](zriver_control_v1* control) { bindRiverClassicControl(control); }
+  );
   m_wayland.setHyprlandToplevelMappingManagerCallback([this](hyprland_toplevel_mapping_manager_v1* manager) {
     bindHyprlandToplevelMappingManager(manager);
   });
@@ -623,6 +631,7 @@ CompositorPlatform::~CompositorPlatform() {
   m_wayland.setOutputLifecycleCallbacks({}, {});
   m_wayland.setWorkspaceManagerCallbacks({}, {});
   m_wayland.setKdeVirtualDesktopManagerCallback({});
+  m_wayland.setRiverClassicWorkspaceCallbacks({}, {});
   m_wayland.setHyprlandToplevelMappingManagerCallback({});
   m_wayland.setToplevelChangeCallback({});
 }
@@ -643,6 +652,7 @@ void CompositorPlatform::initialize() {
   }
   m_initialized = true;
 
+  m_workspaces->setSeat(m_wayland.seat());
   m_workspaces->initialize();
   for (const auto& output : m_wayland.outputs()) {
     if (output.output != nullptr) {
@@ -739,6 +749,11 @@ wl_output* CompositorPlatform::focusedInteractiveOutput(std::chrono::millisecond
       if (outputReady(ipc)) {
         return ipc;
       }
+    }
+  }
+  if (m_workspaces != nullptr) {
+    if (wl_output* output = m_workspaces->riverClassicFocusedOutput(); output != nullptr && outputReady(output)) {
+      return output;
     }
   }
 
@@ -1396,6 +1411,9 @@ TaskbarAssignmentMode CompositorPlatform::taskbarAssignmentMode() const noexcept
 }
 
 bool CompositorPlatform::supportsTaskbarWorkspaceGrouping() const noexcept {
+  if (std::string_view(workspaceBackendName()) == "river-classic") {
+    return false;
+  }
   if (taskbarAssignmentMode() == TaskbarAssignmentMode::WorkspaceOccurrenceTitle) {
     return true;
   }
@@ -1579,6 +1597,7 @@ bool CompositorPlatform::requestSessionExit() const {
     break;
   case compositors::CompositorKind::Kde:
   case compositors::CompositorKind::Pinnacle:
+  case compositors::CompositorKind::RiverClassic:
   case compositors::CompositorKind::Unknown:
     break;
   }
@@ -1627,6 +1646,14 @@ void CompositorPlatform::bindDwlIpcWorkspace(zdwl_ipc_manager_v2* manager) {
   if (m_workspaces != nullptr) {
     m_workspaces->bindDwlIpcWorkspace(manager);
   }
+}
+
+void CompositorPlatform::bindRiverClassicStatus(zriver_status_manager_v1* manager) {
+  m_workspaces->bindRiverClassicStatus(manager);
+}
+
+void CompositorPlatform::bindRiverClassicControl(zriver_control_v1* control) {
+  m_workspaces->bindRiverClassicControl(control);
 }
 
 void CompositorPlatform::onOutputAdded(wl_output* output) {

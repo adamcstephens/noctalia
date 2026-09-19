@@ -90,6 +90,14 @@ exec-once=noctalia
 ```
 :::
 
+:::note[River Classic]
+Add to your executable `~/.config/river/init` script:
+```sh
+noctalia &
+```
+The `river-classic` backend is discovered through the compositor's Wayland protocols; no desktop environment override is required.
+:::
+
 :::note[KDE Plasma]
 Add `noctalia` under System Settings → Autostart, or see [KDE Plasma](/noctalia/compositor-settings/kde/) for Plasma-specific limits (clipboard, blur, screenshots, and more).
 :::

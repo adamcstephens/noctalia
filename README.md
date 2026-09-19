@@ -70,9 +70,14 @@ Noctalia supports Wayland compositors that provide the layer-shell protocols it 
 integration works through compositor-native backends where needed, or through `ext-workspace-v1` on compositors that
 implement it.
 
-Current compositor integrations include Niri, Hyprland, Sway, Scroll, Mango, Labwc, Triad, dwl, and other compatible
-Wayland compositors. Other compositors may run Noctalia but can have reduced workspace, window, output, or
+Current compositor integrations include Niri, Hyprland, Sway, Scroll, Mango, Labwc, Triad, dwl, River Classic, and other
+compatible Wayland compositors. Other compositors may run Noctalia but can have reduced workspace, window, output, or
 session-action integration depending on the protocols and IPC they expose.
+
+River Classic uses its status and control protocols for per-output tags, including active, occupied, and urgent states.
+The `river-classic` backend is selected by protocol availability even when the desktop session is named `river`; modern
+River is not identified as River Classic from that name alone. Window lists use the existing foreign-toplevel integration;
+per-window tag assignments and taskbar workspace grouping are unavailable.
 
 ## Scope
 

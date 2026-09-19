@@ -63,6 +63,9 @@ namespace compositors {
       if (StringUtils::containsInsensitive(hint, "triad")) {
         return CompositorKind::Triad;
       }
+      if (StringUtils::containsInsensitive(hint, "river-classic")) {
+        return CompositorKind::RiverClassic;
+      }
       if (StringUtils::containsInsensitive(hint, "niri")) {
         return CompositorKind::Niri;
       }
@@ -119,6 +122,8 @@ namespace compositors {
       return "Umbriel";
     case CompositorKind::Pinnacle:
       return "Pinnacle";
+    case CompositorKind::RiverClassic:
+      return "RiverClassic";
     case CompositorKind::Unknown:
       return "Unknown";
     }

@@ -56,6 +56,10 @@ Bundled in `third_party/` and built from source:
 - **[Material Color Utilities](https://github.com/material-foundation/material-color-utilities)** — Material 3 palette generation (Apache-2.0)
 - **[Wuffs](https://github.com/google/wuffs)** — Memory-safe image decoders (Apache-2.0)
 
+## Vendored Protocols
+
+- **[River Classic](https://github.com/riverwm/river-classic/tree/b1af960e1bea8506c25179775c18f902a5cb8c87/protocol)** — Status and control protocol definitions in `protocols/river-classic-*.xml` (ISC)
+
 ## System Integration
 
 External tools Noctalia integrates with at runtime when present:
