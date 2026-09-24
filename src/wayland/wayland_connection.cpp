@@ -34,6 +34,7 @@
 #include "wlr-gamma-control-unstable-v1-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "wlr-output-management-unstable-v1-client-protocol.h"
+#include "wlr-output-power-management-unstable-v1-client-protocol.h"
 #include "wlr-screencopy-unstable-v1-client-protocol.h"
 #include "xdg-activation-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
@@ -83,6 +84,7 @@ namespace {
   constexpr std::uint32_t kImageCopyCaptureManagerVersion = 1;
   constexpr std::uint32_t kOutputImageCaptureSourceManagerVersion = 1;
   constexpr std::uint32_t kOutputManagerVersion = 4;
+  constexpr std::uint32_t kOutputPowerManagerVersion = 1;
   constexpr std::uint32_t kOutputManagerMinVersion = 3;
 
   const wl_registry_listener kRegistryListener = {
@@ -684,6 +686,8 @@ bool WaylandConnection::hasScreencopy() const noexcept { return m_screencopyMana
 zwlr_gamma_control_manager_v1* WaylandConnection::gammaControlManager() const noexcept { return m_gammaControlManager; }
 
 zwlr_screencopy_manager_v1* WaylandConnection::screencopyManager() const noexcept { return m_screencopyManager; }
+
+zwlr_output_power_manager_v1* WaylandConnection::outputPowerManager() const noexcept { return m_outputPowerManager; }
 
 ext_image_copy_capture_manager_v1* WaylandConnection::imageCopyCaptureManager() const noexcept {
   return m_imageCopyCaptureManager;
@@ -1320,6 +1324,14 @@ void WaylandConnection::bindGlobal(
     return;
   }
 
+  if (interfaceName == zwlr_output_power_manager_v1_interface.name) {
+    const auto bindVersion = std::min(version, kOutputPowerManagerVersion);
+    m_outputPowerManager = static_cast<zwlr_output_power_manager_v1*>(
+        wl_registry_bind(registry, name, &zwlr_output_power_manager_v1_interface, bindVersion)
+    );
+    return;
+  }
+
   if (interfaceName == wl_output_interface.name) {
     const auto bindVersion = std::min(version, kOutputVersion);
     auto* output = static_cast<wl_output*>(wl_registry_bind(registry, name, &wl_output_interface, bindVersion));
@@ -1475,6 +1487,10 @@ void WaylandConnection::cleanup() {
   if (m_outputManager != nullptr) {
     zwlr_output_manager_v1_destroy(m_outputManager);
     m_outputManager = nullptr;
+  }
+  if (m_outputPowerManager != nullptr) {
+    zwlr_output_power_manager_v1_destroy(m_outputPowerManager);
+    m_outputPowerManager = nullptr;
   }
 
   if (m_viewporter != nullptr) {

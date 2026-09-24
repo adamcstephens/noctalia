@@ -15,6 +15,7 @@
 #include "compositors/niri/niri_output_backend.h"
 #include "compositors/niri/niri_runtime.h"
 #include "compositors/niri/niri_workspace_backend.h"
+#include "compositors/river-classic/river-classic-output-power-backend.h"
 #include "compositors/sway/sway_keyboard_backend.h"
 #include "compositors/sway/sway_output_backend.h"
 #include "compositors/sway/sway_runtime.h"
@@ -58,6 +59,7 @@ namespace compositors {
     virtual ~OutputPowerBackend() = default;
     [[nodiscard]] virtual bool setOutputPower(WaylandConnection& wayland, bool on) const = 0;
     [[nodiscard]] virtual bool isPerOutputTargeted() const noexcept { return false; }
+    virtual void onOutputRemoved(wl_output*) {}
   };
 
 } // namespace compositors
@@ -320,6 +322,24 @@ namespace {
     bool m_perOutputTargeted = false;
   };
 
+  class RiverClassicOutputPowerBackend final : public compositors::OutputPowerBackend {
+  public:
+    ~RiverClassicOutputPowerBackend() override { compositors::river_classic::destroyOutputPowers(m_controls); }
+
+    [[nodiscard]] bool setOutputPower(WaylandConnection& wayland, bool on) const override {
+      return compositors::river_classic::setOutputPower(
+          wayland.outputPowerManager(), wayland.outputs(), m_controls, on
+      );
+    }
+    [[nodiscard]] bool isPerOutputTargeted() const noexcept override { return true; }
+    void onOutputRemoved(wl_output* output) override {
+      compositors::river_classic::removeOutputPower(m_controls, output);
+    }
+
+  private:
+    mutable compositors::river_classic::OutputPowerControls m_controls;
+  };
+
   [[nodiscard]] bool setGenericOutputPower(WaylandConnection& /*wayland*/, bool on) {
     return compositors::ext_workspace::setOutputPower(on);
   }
@@ -361,11 +381,12 @@ namespace {
             return compositors::umbriel::setOutputPower(runtime, on);
           }
       );
+    case compositors::CompositorKind::RiverClassic:
+      return std::make_unique<RiverClassicOutputPowerBackend>();
     case compositors::CompositorKind::Dwl:
     case compositors::CompositorKind::Labwc:
     case compositors::CompositorKind::Kde:
     case compositors::CompositorKind::Pinnacle:
-    case compositors::CompositorKind::RiverClassic:
     case compositors::CompositorKind::Unknown:
       return std::make_unique<LambdaOutputPowerBackend>(&setGenericOutputPower);
     }
@@ -1668,6 +1689,9 @@ void CompositorPlatform::onOutputAdded(wl_output* output) {
 }
 
 void CompositorPlatform::onOutputRemoved(wl_output* output) {
+  if (m_outputPowerBackend != nullptr) {
+    m_outputPowerBackend->onOutputRemoved(output);
+  }
   if (m_workspaces != nullptr) {
     m_workspaces->onOutputRemoved(output);
   }

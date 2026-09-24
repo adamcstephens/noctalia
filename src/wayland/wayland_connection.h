@@ -56,6 +56,7 @@ struct wp_viewporter;
 struct zwlr_output_manager_v1;
 struct zwlr_output_head_v1;
 struct zwlr_output_mode_v1;
+struct zwlr_output_power_manager_v1;
 class ClipboardService;
 class FocusGrabService;
 struct DataControlOps;
@@ -216,6 +217,7 @@ public:
   /// Inhibitor-aware idle notification (`get_idle_notification`); honors `zwp_idle_inhibitor_v1`.
   [[nodiscard]] ext_idle_notification_v1* createIdleNotification(std::uint32_t timeoutMs) const;
   [[nodiscard]] zwp_idle_inhibit_manager_v1* idleInhibitManager() const noexcept;
+  [[nodiscard]] zwlr_output_power_manager_v1* outputPowerManager() const noexcept;
   [[nodiscard]] const std::vector<WaylandOutput>& outputs() const noexcept;
   [[nodiscard]] WaylandOutput* findOutputByWl(wl_output* wlOutput);
   [[nodiscard]] const WaylandOutput* findOutputByWl(wl_output* wlOutput) const;
@@ -329,6 +331,7 @@ private:
   ext_image_copy_capture_manager_v1* m_imageCopyCaptureManager = nullptr;
   ext_output_image_capture_source_manager_v1* m_outputImageCaptureSourceManager = nullptr;
   zwlr_output_manager_v1* m_outputManager = nullptr;
+  zwlr_output_power_manager_v1* m_outputPowerManager = nullptr;
   std::unordered_map<zwlr_output_head_v1*, WaylandOutputHeadInfo> m_outputHeads;
   std::unordered_set<zwlr_output_mode_v1*> m_outputModes;
   std::unique_ptr<FocusGrabService> m_focusGrabService;

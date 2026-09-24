@@ -381,6 +381,8 @@ foreach _p : [
     'protocols/wlr-screencopy-unstable-v1.xml'],
   ['wlr-output-management-unstable-v1',
     'protocols/wlr-output-management-unstable-v1.xml'],
+  ['wlr-output-power-management-unstable-v1',
+    'protocols/wlr-output-power-management-unstable-v1.xml'],
 ]
   _name = _p[0]
   _xml  = _p[1]
@@ -927,6 +929,7 @@ _noctalia_sources = files(
   'src/compositors/compositor_detect.cpp',
   'src/compositors/compositor_runtime.cpp',
   'src/compositors/dwl/dwl_workspace_backend.cpp',
+  'src/compositors/river-classic/river-classic-output-power-backend.cpp',
   'src/compositors/river-classic/river-classic-workspace-backend.cpp',
   'src/compositors/ext_workspace/ext_workspace_output_backend.cpp',
   'src/compositors/ext_workspace/ext_workspace_backend.cpp',
@@ -1282,6 +1285,16 @@ if build_tests
     override_options: ['b_ndebug=false'],
   )
   test('river-classic-workspace-backend', river_classic_test)
+
+  river_classic_output_power_test = executable('river-classic-output-power-backend-test',
+    sources: files('src/compositors/river-classic/river-classic-output-power-backend.cpp',
+      'tests/river-classic-output-power-backend-test.cpp') + _protocol_sources + _protocol_headers,
+    dependencies: wayland_client_dep,
+    include_directories: _noctalia_inc,
+    cpp_args: _noctalia_compile_definitions,
+    override_options: ['b_ndebug=false'],
+  )
+  test('river-classic-output-power-backend', river_classic_output_power_test)
 
   river_classic_detection_test = executable('river-classic-detection-test',
     sources: files('tests/river-classic-detection-test.cpp'),
